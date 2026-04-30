@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "32032451016",
+    "project_id": "vehiclemaintenancetracke-dbf25",
+    "storage_bucket": "vehiclemaintenancetracke-dbf25.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:32032451016:android:5d728f87575c21da27f8fd",
+        "android_client_info": {
+          "package_name": "com.darrius.vehiclemaintenacetracker"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDRJzR8yp6ElSFX7qR6WrvKE2dmcjZGtM0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
