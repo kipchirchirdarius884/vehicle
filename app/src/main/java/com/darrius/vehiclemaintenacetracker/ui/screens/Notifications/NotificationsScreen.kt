@@ -1,5 +1,7 @@
 package com.darrius.vehiclemaintenacetracker.ui.screens.Notifications
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -140,6 +142,7 @@ private fun priorityBg(p: NotificationPriority) = when (p) {
 
 // ── Screen ───────────────────────────────────────────────────────────────────
 
+@RequiresApi(Build.VERSION_CODES.N)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NotificationsScreen(navController: NavController) {

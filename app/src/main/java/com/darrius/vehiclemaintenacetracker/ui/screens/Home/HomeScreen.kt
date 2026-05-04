@@ -44,6 +44,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.R
+import androidx.compose.ui.platform.LocalInspectionMode
+import com.darrius.vehiclemaintenacetracker.navigation.ROUT_MECHANICFINDER
+import com.darrius.vehiclemaintenacetracker.navigation.ROUT_NOTIFICATIONS
+import com.darrius.vehiclemaintenacetracker.navigation.ROUT_SERVICEHISTORYLOG
+import com.darrius.vehiclemaintenacetracker.navigation.ROUT_SERVICEREMINDER
+import com.darrius.vehiclemaintenacetracker.navigation.ROUT_SETTINGS
+import com.darrius.vehiclemaintenacetracker.navigation.ROUT_VEHICLEPROFILE
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -64,21 +72,27 @@ fun HomeScreen(navController: NavController) {
 
         TopAppBar(
 
-            title = {
+            // ✅ Leading Menu Icon
+            navigationIcon = {
+                IconButton(
+                    onClick = {
 
+
+                    }
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Menu,
+                        contentDescription = "Menu"
+                    )
+                }
+            },
+
+            title = {
                 OutlinedTextField(
                     value = searchText,
-
-                    onValueChange = {
-                        searchText = it
-                    },
-
-                    placeholder = {
-                        Text(text = "Search...")
-                    },
-
+                    onValueChange = { searchText = it },
+                    placeholder = { Text(text = "Search...") },
                     singleLine = true,
-
                     modifier = Modifier.fillMaxWidth(0.85f)
                 )
             },
@@ -88,15 +102,24 @@ fun HomeScreen(navController: NavController) {
                 // Notification Icon
                 IconButton(
                     onClick = {
-
-                        // Notification click action
-
+                        navController.navigate(ROUT_NOTIFICATIONS)
                     }
                 ) {
-
                     Icon(
                         imageVector = Icons.Default.Notifications,
                         contentDescription = "Notifications"
+                    )
+                }
+
+                // Settings Icon
+                IconButton(
+                    onClick = {
+                        navController.navigate(ROUT_SETTINGS)
+                    }
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Settings,
+                        contentDescription = "Settings"
                     )
                 }
             }
@@ -116,23 +139,6 @@ fun HomeScreen(navController: NavController) {
             text = "Keeping your vehicle in good condition helps improve safety, performance, and durability.",
             style = MaterialTheme.typography.bodyLarge
         )
-
-        // Car Maintenance Image
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(20.dp),
-            elevation = CardDefaults.cardElevation(6.dp)
-        ) {
-
-            AsyncImage(
-                model = "https://images.unsplash.com/photo-1486006920555-c77dcf18193c",
-                contentDescription = "Car Maintenance",
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(220.dp),
-                contentScale = ContentScale.Crop
-            )
-        }
 
         // Why Maintenance is Important
         Card(

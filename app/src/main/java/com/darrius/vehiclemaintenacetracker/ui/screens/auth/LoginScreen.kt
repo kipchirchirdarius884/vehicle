@@ -1,5 +1,6 @@
 package com.darrius.vehiclemaintenacetracker.ui.screens.auth
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -18,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -28,6 +30,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
+import com.darrius.vehiclemaintenacetracker.navigation.ROUT_HOME
+import com.google.firebase.auth.FirebaseAuth
 
 @Composable
 fun LoginScreen(navController: NavController) {
@@ -36,6 +40,10 @@ fun LoginScreen(navController: NavController) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
+    var isLoading by remember { mutableStateOf(false) }
+
+    val context = LocalContext.current
+    val auth = FirebaseAuth.getInstance()
 
     val gradientBackground = Brush.verticalGradient(
         colors = listOf(Color(0xFF0F2027), Color(0xFF203A43), Color(0xFF2C5364))
@@ -106,7 +114,8 @@ fun LoginScreen(navController: NavController) {
                             unfocusedTextColor = Color.White,
                             cursorColor = Color(0xFF4FC3F7)
                         ),
-                        singleLine = true
+                        singleLine = true,
+                        enabled = !isLoading
                     )
 
                     // Password Field
@@ -143,12 +152,13 @@ fun LoginScreen(navController: NavController) {
                             unfocusedTextColor = Color.White,
                             cursorColor = Color(0xFF4FC3F7)
                         ),
-                        singleLine = true
+                        singleLine = true,
+                        enabled = !isLoading
                     )
 
                     // Forgot Password
                     Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
-                        TextButton(onClick = { /* TODO: Forgot password */ }) {
+                        TextButton(onClick = { /* TODO: Implement Forgot Password */ }) {
                             Text(
                                 text = "Forgot Password?",
                                 color = Color(0xFF4FC3F7),
@@ -162,8 +172,30 @@ fun LoginScreen(navController: NavController) {
                     // Login Button
                     Button(
                         onClick = {
-                            // TODO: Hook up AuthViewModel login()
-                            // authViewModel.login(email, password)
+                            if (email.isBlank() || password.isBlank()) {
+                                Toast.makeText(context, "Please enter email and password", Toast.LENGTH_SHORT).show()
+                                return@Button
+                            }
+
+                            isLoading = true
+
+                            auth.signInWithEmailAndPassword(email.trim(), password)
+                                .addOnCompleteListener { task ->
+                                    if (task.isSuccessful) {
+                                        Toast.makeText(context, "Login successful!", Toast.LENGTH_SHORT).show()
+                                        navController.navigate(ROUT_HOME) {
+                                            popUpTo("register") { inclusive = true } // Clear auth screens
+                                            popUpTo("login") { inclusive = true }
+                                        }
+                                    } else {
+                                        Toast.makeText(
+                                            context,
+                                            "Login failed: ${task.exception?.message}",
+                                            Toast.LENGTH_LONG
+                                        ).show()
+                                    }
+                                    isLoading = false
+                                }
                         },
                         modifier = Modifier
                             .fillMaxWidth()
@@ -171,14 +203,22 @@ fun LoginScreen(navController: NavController) {
                         shape = RoundedCornerShape(14.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = Color(0xFF4FC3F7)
-                        )
+                        ),
+                        enabled = !isLoading
                     ) {
-                        Text(
-                            text = "Login",
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF0F2027)
-                        )
+                        if (isLoading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(24.dp),
+                                color = Color(0xFF0F2027)
+                            )
+                        } else {
+                            Text(
+                                text = "Login",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF0F2027)
+                            )
+                        }
                     }
                 }
             }

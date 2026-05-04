@@ -1,5 +1,6 @@
 package com.darrius.vehiclemaintenacetracker.ui.screens.auth
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -19,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -29,6 +31,19 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
+import com.darrius.vehiclemaintenacetracker.navigation.ROUT_HOME
+import com.darrius.vehiclemaintenacetracker.navigation.ROUT_LOGIN
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.UserProfileChangeRequest
+import com.google.firebase.database.FirebaseDatabase
+import kotlinx.coroutines.tasks.await
+
+// Data class for user info to save in Realtime Database
+data class UserProfile(
+    val username: String = "",
+    val email: String = "",
+    val uid: String = ""
+)
 
 @Composable
 fun RegisterScreen(navController: NavController) {
@@ -40,6 +55,11 @@ fun RegisterScreen(navController: NavController) {
     var confirmPassword by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     var confirmPasswordVisible by remember { mutableStateOf(false) }
+    var isLoading by remember { mutableStateOf(false) }
+
+    val context = LocalContext.current
+    val auth = FirebaseAuth.getInstance()
+    val database = FirebaseDatabase.getInstance().reference
 
     val gradientBackground = Brush.verticalGradient(
         colors = listOf(Color(0xFF0F2027), Color(0xFF203A43), Color(0xFF2C5364))
@@ -109,7 +129,8 @@ fun RegisterScreen(navController: NavController) {
                             unfocusedTextColor = Color.White,
                             cursorColor = Color(0xFF4FC3F7)
                         ),
-                        singleLine = true
+                        singleLine = true,
+                        enabled = !isLoading
                     )
 
                     // Email Field
@@ -134,7 +155,8 @@ fun RegisterScreen(navController: NavController) {
                             unfocusedTextColor = Color.White,
                             cursorColor = Color(0xFF4FC3F7)
                         ),
-                        singleLine = true
+                        singleLine = true,
+                        enabled = !isLoading
                     )
 
                     // Password Field
@@ -171,7 +193,8 @@ fun RegisterScreen(navController: NavController) {
                             unfocusedTextColor = Color.White,
                             cursorColor = Color(0xFF4FC3F7)
                         ),
-                        singleLine = true
+                        singleLine = true,
+                        enabled = !isLoading
                     )
 
                     // Confirm Password Field
@@ -208,7 +231,8 @@ fun RegisterScreen(navController: NavController) {
                             unfocusedTextColor = Color.White,
                             cursorColor = Color(0xFF4FC3F7)
                         ),
-                        singleLine = true
+                        singleLine = true,
+                        enabled = !isLoading
                     )
 
                     Spacer(modifier = Modifier.height(8.dp))
@@ -216,8 +240,66 @@ fun RegisterScreen(navController: NavController) {
                     // Register Button
                     Button(
                         onClick = {
-                            // TODO: Hook up AuthViewModel signup()
-                            // authViewModel.signup(username, email, password, confirmPassword)
+                            // Basic validation
+                            if (username.isBlank() || email.isBlank() || password.isBlank() || confirmPassword.isBlank()) {
+                                Toast.makeText(context, "Please fill all fields", Toast.LENGTH_SHORT).show()
+                                return@Button
+                            }
+                            if (password != confirmPassword) {
+                                Toast.makeText(context, "Passwords do not match", Toast.LENGTH_SHORT).show()
+                                return@Button
+                            }
+                            if (password.length < 6) {
+                                Toast.makeText(context, "Password must be at least 6 characters", Toast.LENGTH_SHORT).show()
+                                return@Button
+                            }
+
+                            isLoading = true
+
+                            // Firebase Registration
+                            auth.createUserWithEmailAndPassword(email.trim(), password)
+                                .addOnCompleteListener { task ->
+                                    if (task.isSuccessful) {
+                                        val firebaseUser = auth.currentUser
+                                        val uid = firebaseUser?.uid ?: ""
+
+                                        // Update display name (optional but good practice)
+                                        val profileUpdates = UserProfileChangeRequest.Builder()
+                                            .setDisplayName(username)
+                                            .build()
+                                        firebaseUser?.updateProfile(profileUpdates)
+
+                                        // Save additional data to Realtime Database
+                                        val userProfile = UserProfile(
+                                            username = username,
+                                            email = email.trim(),
+                                            uid = uid
+                                        )
+
+                                        database.child("users").child(uid).setValue(userProfile)
+                                            .addOnSuccessListener {
+                                                Toast.makeText(context, "Registration successful!", Toast.LENGTH_SHORT).show()
+                                                // Navigate to Home
+                                                navController.navigate(ROUT_HOME) {
+                                                    popUpTo(ROUT_LOGIN) { inclusive = true }
+                                                }
+                                            }
+                                            .addOnFailureListener { e ->
+                                                Toast.makeText(context, "Failed to save user data: ${e.message}", Toast.LENGTH_LONG).show()
+                                                // Still navigate since auth succeeded
+                                                navController.navigate(ROUT_HOME) {
+                                                    popUpTo(ROUT_LOGIN) { inclusive = true }
+                                                }
+                                            }
+                                    } else {
+                                        Toast.makeText(
+                                            context,
+                                            "Registration failed: ${task.exception?.message}",
+                                            Toast.LENGTH_LONG
+                                        ).show()
+                                    }
+                                    isLoading = false
+                                }
                         },
                         modifier = Modifier
                             .fillMaxWidth()
@@ -225,14 +307,22 @@ fun RegisterScreen(navController: NavController) {
                         shape = RoundedCornerShape(14.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = Color(0xFF4FC3F7)
-                        )
+                        ),
+                        enabled = !isLoading
                     ) {
-                        Text(
-                            text = "Register",
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF0F2027)
-                        )
+                        if (isLoading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(24.dp),
+                                color = Color(0xFF0F2027)
+                            )
+                        } else {
+                            Text(
+                                text = "Register",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF0F2027)
+                            )
+                        }
                     }
                 }
             }
