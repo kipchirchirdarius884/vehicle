@@ -477,10 +477,10 @@ fun DetailRow(
 
 // ── Preview ───────────────────────────────────────────────────────────────────
 
-@Preview(showBackground = true)
+@Preview(showBackground = true, showSystemUi = true, device = "spec:width=411dp,height=891dp")
 @Composable
 fun ServiceHistoryLogScreenPreview() {
     MaterialTheme {
-        ServiceHistoryLogScreen(rememberNavController())
+        ServiceHistoryLogScreen(navController = rememberNavController())
     }
 }

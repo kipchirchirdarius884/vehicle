@@ -6,12 +6,16 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.darrius.vehiclemaintenacetracker.ui.screens.AddService.AddServiceScreen
 import com.darrius.vehiclemaintenacetracker.ui.screens.Home.HomeScreen
 import com.darrius.vehiclemaintenacetracker.ui.screens.MechanicFinder.MechanicFinderScreen
 import com.darrius.vehiclemaintenacetracker.ui.screens.Notifications.NotificationsScreen
 import com.darrius.vehiclemaintenacetracker.ui.screens.Onboarding.OnboardingScreen
+import com.darrius.vehiclemaintenacetracker.ui.screens.ServiceHistoryLog.ServiceHistoryLogScreen
 import com.darrius.vehiclemaintenacetracker.ui.screens.ServiceReminder.ServiceReminderScreen
 import com.darrius.vehiclemaintenacetracker.ui.screens.Settings.SettingsScreen
+import com.darrius.vehiclemaintenacetracker.ui.screens.VehicleProfile.AddMaintenanceScreen
+import com.darrius.vehiclemaintenacetracker.ui.screens.VehicleProfile.EditVehicleScreen
 import com.darrius.vehiclemaintenacetracker.ui.screens.VehicleProfile.VehicleProfileScreen
 import com.darrius.vehiclemaintenacetracker.ui.screens.auth.LoginScreen
 import com.darrius.vehiclemaintenacetracker.ui.screens.auth.RegisterScreen
@@ -62,7 +66,7 @@ fun AppNavHost(
         }
 
         composable(ROUT_SERVICEHISTORYLOG) {
-            SettingsScreen(navController = navController)
+            ServiceHistoryLogScreen(navController = navController)
         }
 
         composable(ROUT_VEHICLEPROFILE) {
@@ -76,5 +80,14 @@ fun AppNavHost(
         composable(ROUT_SETTINGS) {
             SettingsScreen(navController = navController)
         }
+        composable(ROUT_EDITVEHICLEPROFILESCREEN) {
+        EditVehicleScreen(navController = navController)
+    }
+    composable(ROUT_ADDMAINTENANCESCREEN) {
+        AddMaintenanceScreen(navController = navController)
+    }
+    composable(ROUT_ADDSERVICESCREEN) {
+        AddServiceScreen(navController=navController) { }
+    }
     }
 }

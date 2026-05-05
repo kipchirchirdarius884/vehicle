@@ -26,6 +26,7 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import kotlinx.coroutines.delay
 import com.darrius.vehiclemaintenacetracker.R
+import com.darrius.vehiclemaintenacetracker.navigation.ROUT_ONBOARDING
 
 @Composable
 fun SplashScreen(navController: NavController) {
@@ -33,7 +34,7 @@ fun SplashScreen(navController: NavController) {
     // Navigate after delay
     LaunchedEffect(Unit) {
         delay(3000)
-        navController.navigate("login") {
+        navController.navigate(ROUT_ONBOARDING) {
             popUpTo("splash") { inclusive = true }
         }
     }

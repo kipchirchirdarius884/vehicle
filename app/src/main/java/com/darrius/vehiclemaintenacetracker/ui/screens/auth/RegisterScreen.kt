@@ -332,7 +332,7 @@ fun RegisterScreen(navController: NavController) {
             // Login redirect
             Row(horizontalArrangement = Arrangement.Center) {
                 Text("Already have an account? ", color = Color(0xFF90A4AE), fontSize = 14.sp)
-                TextButton(onClick = { navController.popBackStack() }) {
+                TextButton(onClick = { navController.navigate("login") }) {
                     Text("Login", color = Color(0xFF4FC3F7), fontSize = 14.sp, fontWeight = FontWeight.Bold)
                 }
             }

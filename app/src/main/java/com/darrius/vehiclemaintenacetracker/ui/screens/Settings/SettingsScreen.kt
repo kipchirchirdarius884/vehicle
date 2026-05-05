@@ -60,7 +60,6 @@ data class SettingsSection(
 @Composable
 fun SettingsScreen(navController: NavController) {
 
-    // Toggle states
     var notificationsEnabled    by remember { mutableStateOf(true) }
     var serviceReminders        by remember { mutableStateOf(true) }
     var darkModeEnabled         by remember { mutableStateOf(true) }
@@ -124,25 +123,24 @@ fun SettingsScreen(navController: NavController) {
         )
     )
 
-    // Toggle helpers (unchanged)
     fun getToggleState(title: String): Boolean = when (title) {
         "Push Notifications" -> notificationsEnabled
-        "Service Reminders" -> serviceReminders
-        "Dark Mode" -> darkModeEnabled
-        "Biometric Lock" -> biometricEnabled
-        "Auto Backup" -> autoBackupEnabled
-        "Fuel Tracking" -> fuelTrackingEnabled
-        else -> false
+        "Service Reminders"  -> serviceReminders
+        "Dark Mode"          -> darkModeEnabled
+        "Biometric Lock"     -> biometricEnabled
+        "Auto Backup"        -> autoBackupEnabled
+        "Fuel Tracking"      -> fuelTrackingEnabled
+        else                 -> false
     }
 
     fun onToggleChange(title: String, value: Boolean) {
         when (title) {
             "Push Notifications" -> notificationsEnabled = value
-            "Service Reminders" -> serviceReminders = value
-            "Dark Mode" -> darkModeEnabled = value
-            "Biometric Lock" -> biometricEnabled = value
-            "Auto Backup" -> autoBackupEnabled = value
-            "Fuel Tracking" -> fuelTrackingEnabled = value
+            "Service Reminders"  -> serviceReminders     = value
+            "Dark Mode"          -> darkModeEnabled       = value
+            "Biometric Lock"     -> biometricEnabled      = value
+            "Auto Backup"        -> autoBackupEnabled     = value
+            "Fuel Tracking"      -> fuelTrackingEnabled   = value
         }
     }
 
@@ -204,7 +202,6 @@ fun SettingsScreen(navController: NavController) {
                     onDestructive = { title ->
                         if (title == "Clear All Data") showDeleteDialog = true
                         else if (title == "Sign Out") {
-                            // TODO: Clear user session / tokens if needed
                             navController.navigate("login") {
                                 popUpTo(0) { saveState = true }
                             }
@@ -212,11 +209,10 @@ fun SettingsScreen(navController: NavController) {
                     },
                     onNavigate = { title ->
                         when (title) {
-                            "My Vehicles" -> navController.navigate("my_vehicles")
+                            "My Vehicles"           -> navController.navigate("my_vehicles")
                             "Maintenance Intervals" -> navController.navigate("maintenance_intervals")
-                            "Privacy Policy" -> showPrivacyDialog = true
-                            "Help & FAQ" -> showHelpFaqDialog = true
-                            // Add more navigation routes as you create the screens
+                            "Privacy Policy"        -> showPrivacyDialog = true
+                            "Help & FAQ"            -> showHelpFaqDialog = true
                         }
                     }
                 )
@@ -228,17 +224,63 @@ fun SettingsScreen(navController: NavController) {
     }
 }
 
+// ── Profile Card ─────────────────────────────────────────────────────────────
 @Composable
 fun ProfileCard() {
-    TODO("Not yet implemented")
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .background(CardDark)
+            .padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // Avatar circle
+        Box(
+            modifier = Modifier
+                .size(52.dp)
+                .clip(CircleShape)
+                .background(AccentOrange.copy(alpha = 0.2f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Filled.Person,
+                contentDescription = null,
+                tint = AccentOrange,
+                modifier = Modifier.size(28.dp)
+            )
+        }
+
+        Spacer(Modifier.width(14.dp))
+
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = "Driver",
+                color = TextPrimary,
+                fontWeight = FontWeight.Bold,
+                fontSize = 16.sp
+            )
+            Text(
+                text = "Manage your account",
+                color = TextSecondary,
+                fontSize = 12.sp
+            )
+        }
+
+        Icon(
+            imageVector = Icons.Filled.ChevronRight,
+            contentDescription = null,
+            tint = TextSecondary,
+            modifier = Modifier.size(18.dp)
+        )
+    }
 }
 
-// ── New Dialogs ─────────────────────────────────────────────────────────────
-
+// ── Dialogs ───────────────────────────────────────────────────────────────────
 @Composable
 private fun PrivacyPolicyDialog(visible: Boolean, onDismiss: () -> Unit) {
     if (!visible) return
-
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = CardDark,
@@ -261,9 +303,7 @@ private fun PrivacyPolicyDialog(visible: Boolean, onDismiss: () -> Unit) {
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Close", color = AccentBlue)
-            }
+            TextButton(onClick = onDismiss) { Text("Close", color = AccentBlue) }
         }
     )
 }
@@ -271,7 +311,6 @@ private fun PrivacyPolicyDialog(visible: Boolean, onDismiss: () -> Unit) {
 @Composable
 private fun HelpFaqDialog(visible: Boolean, onDismiss: () -> Unit) {
     if (!visible) return
-
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = CardDark,
@@ -281,29 +320,23 @@ private fun HelpFaqDialog(visible: Boolean, onDismiss: () -> Unit) {
         text = {
             Column(Modifier.verticalScroll(rememberScrollState())) {
                 Text("Frequently Asked Questions\n\n", fontWeight = FontWeight.Bold, fontSize = 16.sp)
-
                 Text("Q: How do I add a new vehicle?\n", fontWeight = FontWeight.SemiBold)
                 Text("A: Go to My Vehicles → Add Vehicle and fill in the details.\n\n")
-
                 Text("Q: How are service reminders calculated?\n", fontWeight = FontWeight.SemiBold)
                 Text("A: Based on the mileage interval or time interval you set in Maintenance Intervals.\n\n")
-
                 Text("Q: Is my data backed up?\n", fontWeight = FontWeight.SemiBold)
                 Text("A: Enable Auto Backup in settings to sync with your cloud account.\n\n")
-
                 Text("Q: How do I export my records?\n", fontWeight = FontWeight.SemiBold)
                 Text("A: Use the Export Data option in Data & Privacy section.")
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Close", color = AccentBlue)
-            }
+            TextButton(onClick = onDismiss) { Text("Close", color = AccentBlue) }
         }
     )
 }
 
-// ── Updated SettingsSectionBlock with onNavigate ─────────────────────────────
+// ── Settings Section Block ────────────────────────────────────────────────────
 @Composable
 private fun SettingsSectionBlock(
     section: SettingsSection,
@@ -321,7 +354,6 @@ private fun SettingsSectionBlock(
             letterSpacing = 1.5.sp,
             modifier = Modifier.padding(start = 4.dp, bottom = 8.dp)
         )
-
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -344,7 +376,7 @@ private fun SettingsSectionBlock(
     }
 }
 
-// ── Updated SettingsRow ─────────────────────────────────────────────────────
+// ── Settings Row ──────────────────────────────────────────────────────────────
 @Composable
 private fun SettingsRow(
     item: SettingsItem,
@@ -361,30 +393,21 @@ private fun SettingsRow(
             .clickable {
                 when (item.type) {
                     ItemType.DESTRUCTIVE -> onDestructive()
-                    ItemType.TOGGLE -> onToggle(!toggleState)
-                    ItemType.NAVIGATE -> onNavigate()
+                    ItemType.TOGGLE      -> onToggle(!toggleState)
+                    ItemType.NAVIGATE    -> onNavigate()
                 }
             }
             .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Icon badge
         Box(
             modifier = Modifier
                 .size(34.dp)
                 .clip(RoundedCornerShape(9.dp))
-                .background(
-                    if (isDestructive) item.iconTint.copy(alpha = 0.12f)
-                    else item.iconTint.copy(alpha = 0.15f)
-                ),
+                .background(item.iconTint.copy(alpha = if (isDestructive) 0.12f else 0.15f)),
             contentAlignment = Alignment.Center
         ) {
-            Icon(
-                item.icon,
-                contentDescription = null,
-                tint = item.iconTint,
-                modifier = Modifier.size(18.dp)
-            )
+            Icon(item.icon, contentDescription = null, tint = item.iconTint, modifier = Modifier.size(18.dp))
         }
 
         Spacer(Modifier.width(14.dp))
@@ -423,9 +446,7 @@ private fun SettingsRow(
     }
 }
 
-// ProfileCard and StatusChip remain unchanged
-// (Copy them from your original code)
-
+// ── Preview ───────────────────────────────────────────────────────────────────
 @Preview(showBackground = true, backgroundColor = 0xFF0F1117)
 @Composable
 fun SettingsScreenPreview() {
