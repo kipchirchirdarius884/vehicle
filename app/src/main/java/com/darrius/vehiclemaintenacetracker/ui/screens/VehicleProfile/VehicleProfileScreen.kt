@@ -1,261 +1,335 @@
 package com.darrius.vehiclemaintenacetracker.ui.screens.VehicleProfile
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import androidx.navigation.compose.rememberNavController
-import com.darrius.vehiclemaintenacetracker.navigation.ROUT_ADDMAINTENANCESCREEN
-import com.darrius.vehiclemaintenacetracker.navigation.ROUT_EDITVEHICLEPROFILESCREEN
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.database.*
+import java.util.*
 
+/* ==================== DATA CLASSES ==================== */
 data class Vehicle(
-    val id: String,
-    val make: String,
-    val model: String,
-    val year: Int,
-    val licensePlate: String,
-    val vin: String,
-    val currentMileage: Int,
-    val fuelType: String,
-    val color: String
+    val id: String = "",
+    val make: String = "",
+    val model: String = "",
+    val year: Int = 0,
+    val licensePlate: String = "",
+    val vin: String = "",
+    val currentMileage: Int = 0,
+    val fuelType: String = "",
+    val color: String = ""
 )
 
 data class MaintenanceRecord(
-    val id: String,
-    val date: String,
-    val serviceType: String,
-    val mileage: Int,
-    val cost: Double,
-    val notes: String
+    val id: String = "",
+    val date: String = "",
+    val serviceType: String = "",
+    val mileage: Int = 0,
+    val cost: Double = 0.0,
+    val notes: String = ""
 )
 
+/* ==================== MAIN SCREEN ==================== */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun VehicleProfileScreen(
     navController: NavController,
     vehicleId: String? = null
 ) {
-    val vehicle = remember {
-        Vehicle(
-            id = vehicleId ?: "1",
-            make = "Toyota",
-            model = "Camry",
-            year = 2022,
-            licensePlate = "KBC 123A",
-            vin = "1HGBH41JXMN109186",
-            currentMileage = 45280,
-            fuelType = "Petrol",
-            color = "Silver Metallic"
-        )
+
+    val currentUser = FirebaseAuth.getInstance().currentUser
+    val userId = currentUser?.uid ?: "demo_user"
+
+    var vehicle by remember { mutableStateOf<Vehicle?>(null) }
+    var recentMaintenance by remember { mutableStateOf<List<MaintenanceRecord>>(emptyList()) }
+    var isLoading by remember { mutableStateOf(true) }
+    var showEditDialog by remember { mutableStateOf(false) }
+
+    val database = FirebaseDatabase.getInstance()
+    val vehicleRef = database.getReference("users/$userId/vehicle")
+    val maintenanceRef = database.getReference("users/$userId/maintenance")
+
+    /* ===== LOAD DATA ===== */
+    LaunchedEffect(userId) {
+        vehicleRef.addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                vehicle = snapshot.getValue(Vehicle::class.java)
+                isLoading = false
+            }
+            override fun onCancelled(error: DatabaseError) {
+                isLoading = false
+            }
+        })
     }
 
-    val recentMaintenance = remember {
-        listOf(
-            MaintenanceRecord("1", "2026-04-15", "Oil Change & Filter", 44800, 8500.0, "Synthetic oil used"),
-            MaintenanceRecord("2", "2026-02-20", "Brake Pad Replacement", 39200, 24500.0, "Front pads only"),
-            MaintenanceRecord("3", "2025-12-05", "Tire Rotation & Alignment", 35100, 6500.0, "")
-        )
+    LaunchedEffect(userId) {
+        maintenanceRef.orderByChild("date").limitToLast(5)
+            .addValueEventListener(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    val list = mutableListOf<MaintenanceRecord>()
+                    for (child in snapshot.children) {
+                        child.getValue(MaintenanceRecord::class.java)?.let { list.add(it) }
+                    }
+                    recentMaintenance = list.reversed()
+                }
+                override fun onCancelled(error: DatabaseError) {}
+            })
     }
+
+    /* ===== UI ===== */
+    val gradientBackground = Brush.verticalGradient(
+        listOf(Color(0xFF0F2027), Color(0xFF203A43), Color(0xFF2C5364))
+    )
 
     Scaffold(
+        containerColor = Color.Transparent,
         topBar = {
             TopAppBar(
-                title = { Text("Vehicle Profile") },
+                title = { Text("Vehicle Profile", color = Color.White) },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, null, tint = Color.White)
                     }
                 },
                 actions = {
-                    IconButton(onClick = { navController.navigate(ROUT_EDITVEHICLEPROFILESCREEN) }) {
-                        Icon(Icons.Default.Edit, contentDescription = "Edit")
+                    IconButton(onClick = { showEditDialog = true }) {
+                        Icon(Icons.Default.Edit, null, tint = Color.White)
                     }
                 }
             )
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = {
-                navController.navigate(ROUT_ADDMAINTENANCESCREEN)
-            }) {
-                Icon(Icons.Default.Add, contentDescription = "Add Maintenance")
+            FloatingActionButton(
+                onClick = {  },
+                containerColor = Color(0xFF4FC3F7)
+            ) {
+                Icon(Icons.Default.Add, null, tint = Color(0xFF0F2027))
             }
         }
-    ) { paddingValues ->
-        LazyColumn(
+    ) { padding ->
+
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .background(gradientBackground)
+                .padding(padding)
         ) {
-            // Vehicle Header
-            item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
-                ) {
-                    Column(
-                        modifier = Modifier.padding(20.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Icon(
-                            Icons.Default.DirectionsCar,
-                            contentDescription = null,
-                            modifier = Modifier.size(88.dp),
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                        Spacer(Modifier.height(12.dp))
-                        Text(
-                            text = "${vehicle.year} ${vehicle.make} ${vehicle.model}",
-                            style = MaterialTheme.typography.headlineMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = vehicle.licensePlate,
-                            style = MaterialTheme.typography.titleLarge
-                        )
+
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+
+                /* ===== LOADING ===== */
+                if (isLoading) {
+                    item {
+                        Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator(color = Color(0xFF4FC3F7))
+                        }
                     }
                 }
-            }
 
-            // Vehicle Information
-            item {
-                Card(modifier = Modifier.fillMaxWidth()) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text(
-                            "Vehicle Information",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Spacer(Modifier.height(12.dp))
-
-                        InfoRow("Make & Model", "${vehicle.make} ${vehicle.model}")
-                        InfoRow("Year", vehicle.year.toString())
-                        InfoRow("License Plate", vehicle.licensePlate)
-                        InfoRow("VIN", vehicle.vin)
-                        InfoRow("Current Mileage", "${vehicle.currentMileage} km")
-                        InfoRow("Fuel Type", vehicle.fuelType)
-                        InfoRow("Color", vehicle.color)
+                /* ===== EMPTY ===== */
+                else if (vehicle == null) {
+                    item {
+                        Card(
+                            shape = RoundedCornerShape(24.dp),
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFF1E2A35))
+                        ) {
+                            Column(
+                                Modifier.padding(24.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text("No Vehicle Added Yet", color = Color.White)
+                                Spacer(Modifier.height(12.dp))
+                                Button(
+                                    onClick = { showEditDialog = true },
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4FC3F7))
+                                ) {
+                                    Text("Add Vehicle", color = Color(0xFF0F2027))
+                                }
+                            }
+                        }
                     }
                 }
-            }
 
-            // Quick Stats
-            item {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    StatCard(
-                        title = "Total Spent",
-                        value = "KSh 98,400",
-                        icon = Icons.Default.AttachMoney,
-                        modifier = Modifier.weight(1f)
-                    )
-                    StatCard(
-                        title = "Last Service",
-                        value = "15 Apr 2026",
-                        icon = Icons.Default.CalendarToday,
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-            }
+                /* ===== CONTENT ===== */
+                else {
 
-            // Recent Maintenance
-            item {
-                Text(
-                    text = "Recent Maintenance",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-            }
+                    val v = vehicle!!
 
-            items(recentMaintenance) { record ->
-                MaintenanceItem(record)
-            }
+                    item {
+                        Card(
+                            shape = RoundedCornerShape(24.dp),
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFF1E2A35))
+                        ) {
+                            Column(
+                                Modifier.padding(24.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Icon(
+                                    Icons.Default.DirectionsCar,
+                                    null,
+                                    tint = Color(0xFF4FC3F7),
+                                    modifier = Modifier.size(80.dp)
+                                )
+                                Spacer(Modifier.height(12.dp))
+                                Text("${v.year} ${v.make} ${v.model}",
+                                    color = Color.White,
+                                    fontWeight = FontWeight.Bold)
+                                Text(v.licensePlate, color = Color(0xFFB0BEC5))
+                            }
+                        }
+                    }
 
-            item {
-                Button(
-                    onClick = { navController.navigate("maintenance_history/${vehicle.id}") },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("View Full Maintenance History")
+                    item {
+                        Card(
+                            shape = RoundedCornerShape(24.dp),
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFF1E2A35))
+                        ) {
+                            Column(Modifier.padding(20.dp)) {
+                                Text("Vehicle Info", color = Color.White, fontWeight = FontWeight.Bold)
+                                Spacer(Modifier.height(12.dp))
+
+                                InfoRow("Make", v.make)
+                                InfoRow("Model", v.model)
+                                InfoRow("Year", v.year.toString())
+                                InfoRow("Plate", v.licensePlate)
+                                InfoRow("Mileage", "${v.currentMileage} km")
+                                InfoRow("Fuel", v.fuelType)
+                                InfoRow("Color", v.color)
+                            }
+                        }
+                    }
+
+                    item {
+                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            StatCard("Total Spent", "KSh 98,400", Icons.Default.AttachMoney, Modifier.weight(1f))
+                            StatCard("Last Service",
+                                recentMaintenance.firstOrNull()?.date ?: "N/A",
+                                Icons.Default.CalendarToday,
+                                Modifier.weight(1f))
+                        }
+                    }
+
+                    item {
+                        Text("Recent Maintenance", color = Color.White, fontWeight = FontWeight.Bold)
+                    }
+
+                    items(recentMaintenance) {
+                        MaintenanceItem(it)
+                    }
                 }
             }
         }
     }
+
+    /* ===== EDIT DIALOG (UNCHANGED LOGIC) ===== */
+    if (showEditDialog) {
+        val current = vehicle ?: Vehicle()
+
+        var make by remember { mutableStateOf(current.make) }
+        var model by remember { mutableStateOf(current.model) }
+        var year by remember { mutableStateOf(current.year.toString()) }
+        var plate by remember { mutableStateOf(current.licensePlate) }
+
+        AlertDialog(
+            onDismissRequest = { showEditDialog = false },
+            confirmButton = {
+                Button(onClick = {
+                    val newVehicle = Vehicle(
+                        id = current.id.ifEmpty { UUID.randomUUID().toString() },
+                        make = make,
+                        model = model,
+                        year = year.toIntOrNull() ?: 2024,
+                        licensePlate = plate
+                    )
+                    vehicleRef.setValue(newVehicle)
+                    showEditDialog = false
+                }) { Text("Save") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showEditDialog = false }) {
+                    Text("Cancel")
+                }
+            },
+            title = { Text("Edit Vehicle") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(make, { make = it }, label = { Text("Make") })
+                    OutlinedTextField(model, { model = it }, label = { Text("Model") })
+                    OutlinedTextField(year, { year = it }, label = { Text("Year") })
+                    OutlinedTextField(plate, { plate = it }, label = { Text("Plate") })
+                }
+            }
+        )
+    }
 }
 
+/* ==================== HELPERS ==================== */
+
 @Composable
-private fun InfoRow(label: String, value: String) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 6.dp),
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Text(label, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(value, fontWeight = FontWeight.Medium)
+fun InfoRow(label: String, value: String) {
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+        Text(label, color = Color(0xFF90A4AE))
+        Text(value, color = Color.White, fontWeight = FontWeight.Medium)
     }
 }
 
 @Composable
-private fun StatCard(
-    title: String,
-    value: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    modifier: Modifier = Modifier
-) {
+fun StatCard(title: String, value: String, icon: androidx.compose.ui.graphics.vector.ImageVector, modifier: Modifier) {
     Card(
         modifier = modifier,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF1E2A35))
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
+            Modifier.padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+            Icon(icon, null, tint = Color(0xFF4FC3F7))
             Spacer(Modifier.height(8.dp))
-            Text(title, style = MaterialTheme.typography.bodyMedium)
-            Text(value, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text(title, color = Color(0xFFB0BEC5))
+            Text(value, color = Color.White, fontWeight = FontWeight.Bold)
         }
     }
 }
 
 @Composable
-private fun MaintenanceItem(record: MaintenanceRecord) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(record.serviceType, fontWeight = FontWeight.Medium)
-                Text("KSh ${record.cost}", color = MaterialTheme.colorScheme.primary)
+fun MaintenanceItem(record: MaintenanceRecord) {
+    Card(
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF1E2A35))
+    ) {
+        Column(Modifier.padding(16.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text(record.serviceType, color = Color.White)
+                Text("KSh ${record.cost}", color = Color(0xFF4FC3F7))
             }
             Spacer(Modifier.height(4.dp))
-            Text("${record.date} • ${record.mileage} km", style = MaterialTheme.typography.bodySmall)
+            Text("${record.date} • ${record.mileage} km", color = Color(0xFFB0BEC5))
             if (record.notes.isNotEmpty()) {
-                Spacer(Modifier.height(8.dp))
-                Text(record.notes, style = MaterialTheme.typography.bodySmall)
+                Spacer(Modifier.height(6.dp))
+                Text(record.notes, color = Color(0xFFB0BEC5))
             }
         }
-    }
-}
-
-@Preview(showBackground = true, showSystemUi = true)
-@Composable
-fun VehicleProfileScreenPreview() {
-    MaterialTheme {
-        VehicleProfileScreen(rememberNavController())
     }
 }

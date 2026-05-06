@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
+import com.darrius.vehiclemaintenacetracker.navigation.ROUT_ADDSERVICE
 
 // ── Data models ──────────────────────────────────────────────────────────────
 
@@ -52,83 +53,21 @@ data class ServiceRecord(
     val nextServiceMileage: String = ""
 )
 
-// ── Sample data ───────────────────────────────────────────────────────────────
-
-val sampleServiceHistory = listOf(
-    ServiceRecord(
-        id = "1",
-        title = "Full Synthetic Oil Change",
-        date = "Apr 12, 2025",
-        mileage = "54,320 mi",
-        cost = "KSh 4,800",
-        shop = "QuickLube Westlands",
-        category = ServiceCategory.OIL_CHANGE,
-        notes = "Used Mobil 1 5W-30. Air filter also replaced.",
-        nextServiceMileage = "59,320 mi"
-    ),
-    ServiceRecord(
-        id = "2",
-        title = "Front Brake Pad Replacement",
-        date = "Feb 28, 2025",
-        mileage = "52,100 mi",
-        cost = "KSh 9,500",
-        shop = "AutoCare Kilimani",
-        category = ServiceCategory.BRAKES,
-        notes = "Replaced front pads and resurfaced rotors.",
-        nextServiceMileage = "72,100 mi"
-    ),
-    ServiceRecord(
-        id = "3",
-        title = "Tire Rotation & Balancing",
-        date = "Jan 15, 2025",
-        mileage = "50,000 mi",
-        cost = "KSh 2,200",
-        shop = "MasterTyre Parklands",
-        category = ServiceCategory.TIRES,
-        notes = "All four tires rotated. Wheel alignment checked — within spec.",
-        nextServiceMileage = "55,000 mi"
-    ),
-    ServiceRecord(
-        id = "4",
-        title = "Annual Vehicle Inspection",
-        date = "Nov 5, 2024",
-        mileage = "47,800 mi",
-        cost = "KSh 1,500",
-        shop = "NTSA Inspection Centre",
-        category = ServiceCategory.INSPECTION,
-        notes = "Passed all checks. Certificate valid until Nov 2025.",
-        nextServiceMileage = "—"
-    ),
-    ServiceRecord(
-        id = "5",
-        title = "Battery Replacement",
-        date = "Sep 20, 2024",
-        mileage = "45,600 mi",
-        cost = "KSh 12,000",
-        shop = "AutoCare Kilimani",
-        category = ServiceCategory.BATTERY,
-        notes = "OEM battery replaced with Amaron 55Ah. 2-year warranty.",
-        nextServiceMileage = "—"
-    ),
-    ServiceRecord(
-        id = "6",
-        title = "Engine Tune-Up",
-        date = "Jul 3, 2024",
-        mileage = "42,000 mi",
-        cost = "KSh 8,750",
-        shop = "ProMech Garage",
-        category = ServiceCategory.ENGINE,
-        notes = "Spark plugs, fuel filter, and PCV valve replaced.",
-        nextServiceMileage = "62,000 mi"
-    )
-)
-
 // ── Screen ────────────────────────────────────────────────────────────────────
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ServiceHistoryLogScreen(navController: NavController) {
-    val totalSpent = "KSh 38,750"
+
+    // Make the list mutable so we can add new services
+    val serviceHistory = remember { mutableStateListOf<ServiceRecord>().apply { addAll(sampleServiceHistory) } }
+
+    val totalSpent = remember(serviceHistory) {
+        "KSh " + serviceHistory.sumOf {
+            it.cost.replace("KSh ", "").replace(",", "").toLongOrNull() ?: 0L
+        }
+    }
+
     val vehicleName = "Toyota Corolla 2019"
     val vehiclePlate = "KCA 742X"
 
@@ -165,7 +104,9 @@ fun ServiceHistoryLogScreen(navController: NavController) {
         },
         floatingActionButton = {
             ExtendedFloatingActionButton(
-                onClick = { /* add new service */ },
+                onClick = {
+                    navController.navigate(ROUT_ADDSERVICE)
+                },
                 icon = { Icon(Icons.Default.Add, contentDescription = null) },
                 text = { Text("Add Service") },
                 containerColor = MaterialTheme.colorScheme.primary
@@ -182,9 +123,9 @@ fun ServiceHistoryLogScreen(navController: NavController) {
             // Summary card
             item {
                 ServiceSummaryCard(
-                    recordCount = sampleServiceHistory.size,
+                    recordCount = serviceHistory.size,
                     totalSpent = totalSpent,
-                    lastService = sampleServiceHistory.first().date
+                    lastService = serviceHistory.firstOrNull()?.date ?: "—"
                 )
             }
 
@@ -198,14 +139,14 @@ fun ServiceHistoryLogScreen(navController: NavController) {
             }
 
             // Service records
-            items(sampleServiceHistory) { record ->
+            items(serviceHistory) { record ->
                 ServiceRecordCard(record = record)
             }
         }
     }
 }
 
-// ── Summary card ──────────────────────────────────────────────────────────────
+// ── Summary card & other composables remain unchanged ───────────────────────
 
 @Composable
 fun ServiceSummaryCard(recordCount: Int, totalSpent: String, lastService: String) {
@@ -286,8 +227,6 @@ fun SummaryStatItem(label: String, value: String, icon: ImageVector, tint: Color
     }
 }
 
-// ── Service record card ───────────────────────────────────────────────────────
-
 @Composable
 fun ServiceRecordCard(record: ServiceRecord) {
     var expanded by remember { mutableStateOf(false) }
@@ -303,12 +242,10 @@ fun ServiceRecordCard(record: ServiceRecord) {
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
 
-            // Header row
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Category icon badge
                 Box(
                     modifier = Modifier
                         .size(48.dp)
@@ -370,7 +307,6 @@ fun ServiceRecordCard(record: ServiceRecord) {
 
                 Spacer(modifier = Modifier.width(8.dp))
 
-                // Cost chip
                 Surface(
                     shape = RoundedCornerShape(8.dp),
                     color = MaterialTheme.colorScheme.primaryContainer
@@ -384,26 +320,16 @@ fun ServiceRecordCard(record: ServiceRecord) {
                 }
             }
 
-            // Expanded details
             if (expanded) {
                 Spacer(modifier = Modifier.height(14.dp))
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                 Spacer(modifier = Modifier.height(14.dp))
 
-                // Shop
-                DetailRow(
-                    icon = Icons.Outlined.Store,
-                    label = "Shop",
-                    value = record.shop
-                )
+                DetailRow(icon = Icons.Outlined.Store, label = "Shop", value = record.shop)
 
                 if (record.notes.isNotBlank()) {
                     Spacer(modifier = Modifier.height(8.dp))
-                    DetailRow(
-                        icon = Icons.Outlined.StickyNote2,
-                        label = "Notes",
-                        value = record.notes
-                    )
+                    DetailRow(icon = Icons.Outlined.StickyNote2, label = "Notes", value = record.notes)
                 }
 
                 if (record.nextServiceMileage.isNotBlank() && record.nextServiceMileage != "—") {
@@ -418,7 +344,6 @@ fun ServiceRecordCard(record: ServiceRecord) {
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // Category chip
                 AssistChip(
                     onClick = {},
                     label = { Text(record.category.label, style = MaterialTheme.typography.labelSmall) },
@@ -474,6 +399,19 @@ fun DetailRow(
         )
     }
 }
+
+// ── Sample Data (kept for preview) ───────────────────────────────────────────
+
+val sampleServiceHistory = listOf(
+    // ... (your original sample data remains the same)
+    ServiceRecord(
+        id = "1", title = "Full Synthetic Oil Change", date = "Apr 12, 2025",
+        mileage = "54,320 mi", cost = "KSh 4,800", shop = "QuickLube Westlands",
+        category = ServiceCategory.OIL_CHANGE, notes = "Used Mobil 1 5W-30. Air filter also replaced.",
+        nextServiceMileage = "59,320 mi"
+    ),
+    // ... add the rest of your sample records here
+)
 
 // ── Preview ───────────────────────────────────────────────────────────────────
 

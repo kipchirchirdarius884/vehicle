@@ -73,21 +73,19 @@ fun AppNavHost(
             VehicleProfileScreen(navController = navController)
         }
 
-        composable(ROUT_NOTIFICATIONS) {
-            NotificationsScreen(navController = navController)
-        }
+
 
         composable(ROUT_SETTINGS) {
             SettingsScreen(navController = navController)
         }
-        composable(ROUT_EDITVEHICLEPROFILESCREEN) {
+        composable(ROUT_EDITVEHICLEPROFILE) {
         EditVehicleScreen(navController = navController)
     }
-    composable(ROUT_ADDMAINTENANCESCREEN) {
+    composable(ROUT_ADDMAINTENANCE) {
         AddMaintenanceScreen(navController = navController)
     }
-    composable(ROUT_ADDSERVICESCREEN) {
-        AddServiceScreen(navController=navController) { }
+    composable(ROUT_ADDSERVICE) {
+        AddServiceScreen(navController = navController) {}
     }
     }
 }

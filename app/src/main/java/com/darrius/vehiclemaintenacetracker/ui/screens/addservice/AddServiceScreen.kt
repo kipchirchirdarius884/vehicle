@@ -18,21 +18,45 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
-import com.darrius.vehiclemaintenacetracker.ui.screens.ServiceHistoryLog.ServiceCategory
-import com.darrius.vehiclemaintenacetracker.ui.screens.ServiceHistoryLog.ServiceRecord
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.FirebaseDatabase
 import java.text.NumberFormat
 import java.util.*
 
+// ==================== DATA CLASSES ====================
+data class ServiceRecord(
+    val id: String = "",
+    val title: String = "",
+    val date: String = "",
+    val mileage: String = "",
+    val cost: String = "",
+    val shop: String = "",
+    val category: ServiceCategory = ServiceCategory.OTHER,
+    val notes: String = "",
+    val nextServiceMileage: String = ""
+)
+
+enum class ServiceCategory(val label: String, val icon: androidx.compose.ui.graphics.vector.ImageVector) {
+    OIL_CHANGE("Oil Change", Icons.Outlined.OilBarrel),
+    BRAKES("Brakes", Icons.Outlined.DirectionsCar),
+    TIRES("Tires", Icons.Outlined.TireRepair),
+    ENGINE("Engine", Icons.Outlined.Engineering),
+    BATTERY("Battery", Icons.Outlined.BatteryFull),
+    OTHER("Other", Icons.Outlined.Build)
+}
+
+// ==================== MAIN SCREEN ====================
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddServiceScreen(
     navController: NavController,
-    onAddService: (ServiceRecord) -> Unit
+    onAddService: (ServiceRecord) -> Unit = {}   // Optional callback
 ) {
     val context = LocalContext.current
+    val currentUser = FirebaseAuth.getInstance().currentUser
+    val userId = currentUser?.uid ?: "demo_user"
 
-    // ── State ─────────────────────────────
+    // ── Form State ─────────────────────────────
     var title by remember { mutableStateOf("") }
     var costInput by remember { mutableStateOf("") }
     var mileage by remember { mutableStateOf("") }
@@ -54,8 +78,9 @@ fun AddServiceScreen(
         calendar.get(Calendar.DAY_OF_MONTH)
     )
 
-    // ── Firebase ─────────────────────────
-    val dbRef = FirebaseDatabase.getInstance().getReference("services")
+    // ── Firebase Reference (User-specific) ─────────────────────────
+    val database = FirebaseDatabase.getInstance()
+    val servicesRef = database.getReference("users/$userId/services")
 
     Scaffold(
         topBar = {
@@ -64,6 +89,11 @@ fun AddServiceScreen(
         bottomBar = {
             Button(
                 onClick = {
+                    if (title.isBlank() || costInput.isBlank()) {
+                        Toast.makeText(context, "Title and Cost are required", Toast.LENGTH_SHORT).show()
+                        return@Button
+                    }
+
                     val formattedCost = formatCurrency(costInput)
 
                     val newService = ServiceRecord(
@@ -78,15 +108,15 @@ fun AddServiceScreen(
                         nextServiceMileage = nextService
                     )
 
-                    // ✅ Firebase Save with success/failure handling
-                    dbRef.child(newService.id).setValue(newService)
+                    // ✅ Save to Firebase Realtime Database
+                    servicesRef.child(newService.id).setValue(newService)
                         .addOnSuccessListener {
-                            Toast.makeText(context, "Service saved ✅", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, "Service saved successfully ✅", Toast.LENGTH_SHORT).show()
                             onAddService(newService)
                             navController.popBackStack()
                         }
-                        .addOnFailureListener {
-                            Toast.makeText(context, "Failed to save ❌", Toast.LENGTH_SHORT).show()
+                        .addOnFailureListener { error ->
+                            Toast.makeText(context, "Failed to save: ${error.message}", Toast.LENGTH_LONG).show()
                         }
                 },
                 modifier = Modifier
@@ -107,34 +137,34 @@ fun AddServiceScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
 
-            // ── Title ─────────────────────
+            // Title
             OutlinedTextField(
                 value = title,
                 onValueChange = { title = it },
-                label = { Text("Service Title") },
+                label = { Text("Service Title *") },
                 modifier = Modifier.fillMaxWidth()
             )
 
-            // ── Cost ─────────────────────
+            // Cost
             OutlinedTextField(
                 value = costInput,
                 onValueChange = { costInput = it.filter { c -> c.isDigit() } },
-                label = { Text("Cost (KSh)") },
+                label = { Text("Cost (KSh) *") },
                 leadingIcon = { Icon(Icons.Outlined.Payments, contentDescription = null) },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.fillMaxWidth()
             )
 
-            // ── Mileage ──────────────────
+            // Mileage
             OutlinedTextField(
                 value = mileage,
-                onValueChange = { mileage = it },
-                label = { Text("Mileage") },
+                onValueChange = { mileage = it.filter { c -> c.isDigit() } },
+                label = { Text("Mileage (km)") },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.fillMaxWidth()
             )
 
-            // ── Date Picker ──────────────
+            // Date
             OutlinedTextField(
                 value = selectedDate,
                 onValueChange = {},
@@ -148,38 +178,38 @@ fun AddServiceScreen(
                 }
             )
 
-            // ── Shop ─────────────────────
+            // Shop
             OutlinedTextField(
                 value = shop,
                 onValueChange = { shop = it },
-                label = { Text("Service Shop") },
+                label = { Text("Service Shop / Garage") },
                 leadingIcon = { Icon(Icons.Outlined.Store, null) },
                 modifier = Modifier.fillMaxWidth()
             )
 
-            // ── Notes ────────────────────
+            // Notes
             OutlinedTextField(
                 value = notes,
                 onValueChange = { notes = it },
-                label = { Text("Notes") },
+                label = { Text("Notes / Description") },
                 leadingIcon = { Icon(Icons.Outlined.StickyNote2, null) },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                minLines = 3
             )
 
-            // ── Next Service ─────────────
+            // Next Service Mileage
             OutlinedTextField(
                 value = nextService,
-                onValueChange = { nextService = it },
+                onValueChange = { nextService = it.filter { c -> c.isDigit() } },
                 label = { Text("Next Service Mileage") },
-                supportingText = {
-                    Text("💡 Tip: Oil change every 5,000 km")
-                },
+                supportingText = { Text("💡 Tip: Oil change every 5,000 - 10,000 km") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.fillMaxWidth()
             )
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // ── Category ─────────────────
+            // Category Chips
             Text("Category", style = MaterialTheme.typography.titleMedium)
 
             FlowRow(
@@ -201,8 +231,7 @@ fun AddServiceScreen(
     }
 }
 
-// ── Helpers ─────────────────────────────
-
+// ==================== HELPER FUNCTIONS ====================
 fun formatCurrency(amount: String): String {
     return try {
         val number = amount.toLong()
@@ -218,21 +247,17 @@ fun getTodayDate(): String {
 }
 
 fun getMonth(month: Int): String {
-    return listOf(
-        "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-        "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
-    )[month]
+    val months = listOf("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+    return months[month]
 }
 
-// ── Preview ───────────────────────────────────────────────────────────────────
-
+// ==================== PREVIEW ====================
 @Preview(showBackground = true, showSystemUi = true, device = "spec:width=411dp,height=891dp")
 @Composable
 fun AddServiceScreenPreview() {
     MaterialTheme {
         AddServiceScreen(
-            navController = rememberNavController(),
-            onAddService = { }
+            navController = rememberNavController()
         )
     }
 }
