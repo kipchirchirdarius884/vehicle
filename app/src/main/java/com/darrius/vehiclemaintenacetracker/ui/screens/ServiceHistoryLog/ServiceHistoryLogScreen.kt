@@ -21,6 +21,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -28,9 +29,10 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.darrius.vehiclemaintenacetracker.navigation.ROUT_ADDSERVICE
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.database.*
 
-// ── Data models ──────────────────────────────────────────────────────────────
-
+// ── Data Models ─────────────────────────────────────────────────────────────
 enum class ServiceCategory(val label: String, val icon: ImageVector, val color: Color) {
     OIL_CHANGE("Oil Change", Icons.Outlined.WaterDrop, Color(0xFFFF6B35)),
     TIRES("Tires", Icons.Outlined.Album, Color(0xFF4ECDC4)),
@@ -42,159 +44,197 @@ enum class ServiceCategory(val label: String, val icon: ImageVector, val color: 
 }
 
 data class ServiceRecord(
-    val id: String,
-    val title: String,
-    val date: String,
-    val mileage: String,
-    val cost: String,
-    val shop: String,
-    val category: ServiceCategory,
+    val id: String = "",
+    val title: String = "",
+    val date: String = "",
+    val mileage: String = "",
+    val cost: String = "",
+    val shop: String = "",
+    val category: ServiceCategory = ServiceCategory.OTHER,
     val notes: String = "",
     val nextServiceMileage: String = ""
 )
 
-// ── Screen ────────────────────────────────────────────────────────────────────
-
+// ── Main Screen ─────────────────────────────────────────────────────────────
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ServiceHistoryLogScreen(navController: NavController) {
 
-    // Make the list mutable so we can add new services
-    val serviceHistory = remember { mutableStateListOf<ServiceRecord>().apply { addAll(sampleServiceHistory) } }
+    val currentUser = FirebaseAuth.getInstance().currentUser
+    val userId = currentUser?.uid ?: "demo_user"
 
-    val totalSpent = remember(serviceHistory) {
-        "KSh " + serviceHistory.sumOf {
-            it.cost.replace("KSh ", "").replace(",", "").toLongOrNull() ?: 0L
-        }
-    }
+    var serviceHistory by remember { mutableStateOf<List<ServiceRecord>>(emptyList()) }
+    var isLoading by remember { mutableStateOf(true) }
 
     val vehicleName = "Toyota Corolla 2019"
     val vehiclePlate = "KCA 742X"
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Column {
-                        Text(
-                            text = "Service History",
-                            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
-                        )
-                        Text(
-                            text = "$vehicleName · $vehiclePlate",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                        )
-                    }
-                },
-                navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                actions = {
-                    IconButton(onClick = { /* filter */ }) {
-                        Icon(Icons.Default.FilterList, contentDescription = "Filter")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                )
-            )
-        },
-        floatingActionButton = {
-            ExtendedFloatingActionButton(
-                onClick = {
-                    navController.navigate(ROUT_ADDSERVICE)
-                },
-                icon = { Icon(Icons.Default.Add, contentDescription = null) },
-                text = { Text("Add Service") },
-                containerColor = MaterialTheme.colorScheme.primary
-            )
-        }
-    ) { innerPadding ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding),
-            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 96.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            // Summary card
-            item {
-                ServiceSummaryCard(
-                    recordCount = serviceHistory.size,
-                    totalSpent = totalSpent,
-                    lastService = serviceHistory.firstOrNull()?.date ?: "—"
-                )
+    val gradientBackground = Brush.verticalGradient(
+        colors = listOf(Color(0xFF0F2027), Color(0xFF203A43), Color(0xFF2C5364))
+    )
+
+    // Load past services from Firebase
+    LaunchedEffect(userId) {
+        val database = FirebaseDatabase.getInstance()
+        val servicesRef = database.getReference("users/$userId/services")
+
+        servicesRef.addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val list = mutableListOf<ServiceRecord>()
+                for (child in snapshot.children) {
+                    val record = child.getValue(ServiceRecord::class.java)
+                    record?.let { list.add(it) }
+                }
+                // Sort by date (newest first)
+                serviceHistory = list.sortedByDescending { it.date }
+                isLoading = false
             }
 
-            // Section header
-            item {
-                Text(
-                    text = "All Records",
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-                    modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
-                )
+            override fun onCancelled(error: DatabaseError) {
+                isLoading = false
             }
+        })
+    }
 
-            // Service records
-            items(serviceHistory) { record ->
-                ServiceRecordCard(record = record)
+    Box(modifier = Modifier.fillMaxSize().background(brush = gradientBackground)) {
+        Scaffold(
+            containerColor = Color.Transparent,
+            topBar = {
+                TopAppBar(
+                    title = {
+                        Column {
+                            Text(
+                                text = "Service History",
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                            Text(
+                                "$vehicleName · $vehiclePlate",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color(0xFFB0BEC5)
+                            )
+                        }
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = { navController.popBackStack() }) {
+                            Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
+                )
+            },
+        ) { padding ->
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding),
+                contentPadding = PaddingValues(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                // Summary Card
+                item {
+                    ServiceSummaryCard(
+                        recordCount = serviceHistory.size,
+                        totalSpent = calculateTotalSpent(serviceHistory),
+                        lastService = serviceHistory.firstOrNull()?.date ?: "—"
+                    )
+                }
+
+                if (isLoading) {
+                    item {
+                        Box(
+                            modifier = Modifier.fillMaxWidth().padding(32.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(color = Color(0xFF4FC3F7))
+                        }
+                    }
+                } else if (serviceHistory.isEmpty()) {
+                    item {
+                        EmptyServiceHistoryState(
+                            onAddClicked = { navController.navigate(ROUT_ADDSERVICE) }
+                        )
+                    }
+                } else {
+                    item {
+                        Text(
+                            text = "All Records",
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color.White
+                            ),
+                            modifier = Modifier.padding(vertical = 8.dp)
+                        )
+                    }
+
+                    items(serviceHistory) { record ->
+                        ServiceRecordCard(record = record)
+                    }
+                }
             }
         }
     }
 }
 
-// ── Summary card & other composables remain unchanged ───────────────────────
+// Helper
+private fun calculateTotalSpent(list: List<ServiceRecord>): String {
+    if (list.isEmpty()) return "KSh 0"
+    val total = list.sumOf {
+        it.cost.replace("KSh ", "").replace(",", "").toLongOrNull() ?: 0L
+    }
+    return "KSh $total"
+}
 
+// Empty State
+@Composable
+fun EmptyServiceHistoryState(onAddClicked: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 80.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Icon(
+            imageVector = Icons.Outlined.ReceiptLong,
+            contentDescription = null,
+            tint = Color(0xFF4FC3F7),
+            modifier = Modifier.size(80.dp)
+        )
+        Spacer(modifier = Modifier.height(24.dp))
+        Text(
+            text = "No Service Records Yet",
+            fontSize = 20.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color.White
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = "Add your first service record to start tracking",
+            fontSize = 14.sp,
+            color = Color(0xFFB0BEC5),
+            textAlign = TextAlign.Center
+        )
+    }
+}
+
+// Summary Card
 @Composable
 fun ServiceSummaryCard(recordCount: Int, totalSpent: String, lastService: String) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.Transparent)
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF1E2A35))
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(
-                    Brush.linearGradient(
-                        colors = listOf(Color(0xFF1A1A2E), Color(0xFF16213E))
-                    ),
-                    shape = RoundedCornerShape(20.dp)
-                )
-                .padding(20.dp)
-        ) {
+        Box(modifier = Modifier.padding(20.dp)) {
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                Text(
-                    text = "Maintenance Overview",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = Color.White.copy(alpha = 0.6f)
-                )
+                Text("Maintenance Overview", color = Color(0xFFB0BEC5))
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    SummaryStatItem(
-                        label = "Total Records",
-                        value = "$recordCount",
-                        icon = Icons.Outlined.Receipt,
-                        tint = Color(0xFF4ECDC4)
-                    )
-                    SummaryStatItem(
-                        label = "Total Spent",
-                        value = totalSpent,
-                        icon = Icons.Outlined.Payments,
-                        tint = Color(0xFFFFD166)
-                    )
-                    SummaryStatItem(
-                        label = "Last Service",
-                        value = lastService,
-                        icon = Icons.Outlined.CalendarToday,
-                        tint = Color(0xFF06D6A0)
-                    )
+                    SummaryStatItem("Records", recordCount.toString(), Icons.Outlined.Receipt, Color(0xFF4ECDC4))
+                    SummaryStatItem("Total Spent", totalSpent, Icons.Outlined.Payments, Color(0xFFFFD166))
+                    SummaryStatItem("Last Service", lastService, Icons.Outlined.CalendarToday, Color(0xFF06D6A0))
                 }
             }
         }
@@ -208,25 +248,18 @@ fun SummaryStatItem(label: String, value: String, icon: ImageVector, tint: Color
             modifier = Modifier
                 .size(44.dp)
                 .clip(CircleShape)
-                .background(tint.copy(alpha = 0.15f)),
+                .background(tint.copy(0.15f)),
             contentAlignment = Alignment.Center
         ) {
             Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(20.dp))
         }
         Spacer(modifier = Modifier.height(6.dp))
-        Text(
-            text = value,
-            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-            color = Color.White
-        )
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelSmall,
-            color = Color.White.copy(alpha = 0.5f)
-        )
+        Text(text = value, color = Color.White, fontWeight = FontWeight.Bold)
+        Text(text = label, color = Color(0xFFB0BEC5), fontSize = 12.sp)
     }
 }
 
+// Service Record Card (You can expand this later)
 @Composable
 fun ServiceRecordCard(record: ServiceRecord) {
     var expanded by remember { mutableStateOf(false) }
@@ -237,15 +270,11 @@ fun ServiceRecordCard(record: ServiceRecord) {
             .animateContentSize(animationSpec = tween(250))
             .clickable { expanded = !expanded },
         shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF1E2A35))
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+            // Current compact view (you can improve later)
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(
                     modifier = Modifier
                         .size(48.dp)
@@ -253,169 +282,32 @@ fun ServiceRecordCard(record: ServiceRecord) {
                         .background(record.category.color.copy(alpha = 0.15f)),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(
-                        imageVector = record.category.icon,
-                        contentDescription = null,
-                        tint = record.category.color,
-                        modifier = Modifier.size(24.dp)
-                    )
+                    Icon(record.category.icon, null, tint = record.category.color, modifier = Modifier.size(24.dp))
                 }
 
                 Spacer(modifier = Modifier.width(12.dp))
 
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = record.title,
-                        style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        Icon(
-                            Icons.Outlined.CalendarToday,
-                            contentDescription = null,
-                            modifier = Modifier.size(12.dp),
-                            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-                        )
-                        Text(
-                            text = record.date,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-                        )
-                        Text(
-                            text = "·",
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
-                            fontSize = 12.sp
-                        )
-                        Icon(
-                            Icons.Outlined.Speed,
-                            contentDescription = null,
-                            modifier = Modifier.size(12.dp),
-                            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-                        )
-                        Text(
-                            text = record.mileage,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-                        )
-                    }
+                    Text(record.title, color = Color.White, fontWeight = FontWeight.SemiBold)
+                    Text(record.date, color = Color(0xFFB0BEC5), fontSize = 13.sp)
                 }
 
-                Spacer(modifier = Modifier.width(8.dp))
-
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = MaterialTheme.colorScheme.primaryContainer
-                ) {
-                    Text(
-                        text = record.cost,
-                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                    )
-                }
+                Text(record.cost, color = Color(0xFF4FC3F7), fontWeight = FontWeight.Bold)
             }
 
             if (expanded) {
-                Spacer(modifier = Modifier.height(14.dp))
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                Spacer(modifier = Modifier.height(14.dp))
-
-                DetailRow(icon = Icons.Outlined.Store, label = "Shop", value = record.shop)
-
-                if (record.notes.isNotBlank()) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    DetailRow(icon = Icons.Outlined.StickyNote2, label = "Notes", value = record.notes)
-                }
-
-                if (record.nextServiceMileage.isNotBlank() && record.nextServiceMileage != "—") {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    DetailRow(
-                        icon = Icons.Outlined.Alarm,
-                        label = "Next Service",
-                        value = record.nextServiceMileage,
-                        valueColor = MaterialTheme.colorScheme.primary
-                    )
-                }
-
                 Spacer(modifier = Modifier.height(12.dp))
-
-                AssistChip(
-                    onClick = {},
-                    label = { Text(record.category.label, style = MaterialTheme.typography.labelSmall) },
-                    leadingIcon = {
-                        Icon(
-                            record.category.icon,
-                            contentDescription = null,
-                            modifier = Modifier.size(14.dp),
-                            tint = record.category.color
-                        )
-                    },
-                    colors = AssistChipDefaults.assistChipColors(
-                        containerColor = record.category.color.copy(alpha = 0.1f),
-                        labelColor = record.category.color
-                    ),
-                    border = AssistChipDefaults.assistChipBorder(
-                        borderColor = record.category.color.copy(alpha = 0.3f),
-                        enabled = true
-                    )
-                )
+                HorizontalDivider(color = Color(0xFF37474F))
+                Spacer(modifier = Modifier.height(12.dp))
+                Text("Shop: ${record.shop}", color = Color.White)
+                if (record.notes.isNotBlank()) Text("Notes: ${record.notes}", color = Color(0xFFB0BEC5))
             }
         }
     }
 }
 
-@Composable
-fun DetailRow(
-    icon: ImageVector,
-    label: String,
-    value: String,
-    valueColor: Color = MaterialTheme.colorScheme.onSurface
-) {
-    Row(verticalAlignment = Alignment.Top) {
-        Icon(
-            icon,
-            contentDescription = null,
-            modifier = Modifier
-                .size(16.dp)
-                .offset(y = 1.dp),
-            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
-        )
-        Spacer(modifier = Modifier.width(8.dp))
-        Text(
-            text = "$label: ",
-            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold),
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-        )
-        Text(
-            text = value,
-            style = MaterialTheme.typography.bodySmall,
-            color = valueColor,
-            modifier = Modifier.weight(1f)
-        )
-    }
-}
-
-// ── Sample Data (kept for preview) ───────────────────────────────────────────
-
-val sampleServiceHistory = listOf(
-    // ... (your original sample data remains the same)
-    ServiceRecord(
-        id = "1", title = "Full Synthetic Oil Change", date = "Apr 12, 2025",
-        mileage = "54,320 mi", cost = "KSh 4,800", shop = "QuickLube Westlands",
-        category = ServiceCategory.OIL_CHANGE, notes = "Used Mobil 1 5W-30. Air filter also replaced.",
-        nextServiceMileage = "59,320 mi"
-    ),
-    // ... add the rest of your sample records here
-)
-
-// ── Preview ───────────────────────────────────────────────────────────────────
-
-@Preview(showBackground = true, showSystemUi = true, device = "spec:width=411dp,height=891dp")
+// Preview
+@Preview(showBackground = true, showSystemUi = true)
 @Composable
 fun ServiceHistoryLogScreenPreview() {
     MaterialTheme {
