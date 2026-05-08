@@ -16,7 +16,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.outlined.*
+import androidx.compose.material.icons.outlined.NotificationsNone
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -26,6 +26,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -33,8 +34,7 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 
-// ── Data model ──────────────────────────────────────────────────────────────
-
+// ── Data Model & Sample Data (unchanged) ───────────────────────────────────
 enum class NotificationPriority { URGENT, WARNING, INFO }
 
 data class MaintenanceNotification(
@@ -49,183 +49,114 @@ data class MaintenanceNotification(
     val actionLabel: String? = null
 )
 
-// ── Sample data ──────────────────────────────────────────────────────────────
-
 private val sampleNotifications = listOf(
-    MaintenanceNotification(
-        id = 1,
-        title = "Oil Change Due",
-        message = "Your Toyota Camry is 200 miles past the recommended oil change interval. Schedule service soon.",
-        vehicle = "2021 Toyota Camry",
-        timeAgo = "Just now",
-        priority = NotificationPriority.URGENT,
-        icon = Icons.Filled.Warning,
-        actionLabel = "Book Service"
-    ),
-    MaintenanceNotification(
-        id = 2,
-        title = "Tire Rotation Reminder",
-        message = "Rotate your tires to ensure even wear and extend tire life. Due in 150 miles.",
-        vehicle = "2021 Toyota Camry",
-        timeAgo = "2 hrs ago",
-        priority = NotificationPriority.WARNING,
-        icon = Icons.Filled.Refresh,
-        actionLabel = "Schedule"
-    ),
-    MaintenanceNotification(
-        id = 3,
-        title = "Brake Inspection",
-        message = "Brake pads are approaching minimum thickness. Inspection recommended within the next 500 miles.",
-        vehicle = "2019 Honda CR-V",
-        timeAgo = "5 hrs ago",
-        priority = NotificationPriority.WARNING,
-        icon = Icons.Filled.PriorityHigh,
-        actionLabel = "Learn More"
-    ),
-    MaintenanceNotification(
-        id = 4,
-        title = "Service Completed",
-        message = "Air filter replacement was successfully logged for your vehicle. Next service in 12,000 miles.",
-        vehicle = "2019 Honda CR-V",
-        timeAgo = "Yesterday",
-        priority = NotificationPriority.INFO,
-        icon = Icons.Filled.CheckCircle,
-        isRead = true
-    ),
-    MaintenanceNotification(
-        id = 5,
-        title = "Battery Health Check",
-        message = "Your vehicle battery is 4 years old. A health check is recommended to avoid unexpected failures.",
-        vehicle = "2021 Toyota Camry",
-        timeAgo = "2 days ago",
-        priority = NotificationPriority.INFO,
-        icon = Icons.Filled.BatteryAlert,
-        isRead = true,
-        actionLabel = "Check Now"
-    ),
-    MaintenanceNotification(
-        id = 6,
-        title = "Annual Registration Due",
-        message = "Vehicle registration for your Honda CR-V expires in 30 days. Renew to stay compliant.",
-        vehicle = "2019 Honda CR-V",
-        timeAgo = "3 days ago",
-        priority = NotificationPriority.INFO,
-        icon = Icons.Filled.Description,
-        isRead = true,
-        actionLabel = "Renew"
-    )
+    MaintenanceNotification(1, "Oil Change Due", "Your Toyota Camry is 200 miles past the recommended oil change interval. Schedule service soon.", "2021 Toyota Camry", "Just now", NotificationPriority.URGENT, Icons.Filled.Warning, actionLabel = "Book Service"),
+    MaintenanceNotification(2, "Tire Rotation Reminder", "Rotate your tires to ensure even wear...", "2021 Toyota Camry", "2 hrs ago", NotificationPriority.WARNING, Icons.Filled.Refresh, actionLabel = "Schedule"),
+    MaintenanceNotification(3, "Brake Inspection", "Brake pads are approaching minimum thickness...", "2019 Honda CR-V", "5 hrs ago", NotificationPriority.WARNING, Icons.Filled.PriorityHigh, actionLabel = "Learn More"),
+    MaintenanceNotification(4, "Service Completed", "Air filter replacement was successfully logged...", "2019 Honda CR-V", "Yesterday", NotificationPriority.INFO, Icons.Filled.CheckCircle, isRead = true),
+    MaintenanceNotification(5, "Battery Health Check", "Your vehicle battery is 4 years old...", "2021 Toyota Camry", "2 days ago", NotificationPriority.INFO, Icons.Filled.BatteryAlert, isRead = true, actionLabel = "Check Now"),
+    MaintenanceNotification(6, "Annual Registration Due", "Vehicle registration for your Honda CR-V expires in 30 days...", "2019 Honda CR-V", "3 days ago", NotificationPriority.INFO, Icons.Filled.Description, isRead = true, actionLabel = "Renew")
 )
 
-// ── Color helpers ────────────────────────────────────────────────────────────
+// ── Colors (Matching Login Screen) ─────────────────────────────────────────
+private val GradientBackground = Brush.verticalGradient(
+    colors = listOf(Color(0xFF0F2027), Color(0xFF203A43), Color(0xFF2C5364))
+)
 
-private val UrgentColor    = Color(0xFFE53E3E)
-private val WarningColor   = Color(0xFFDD6B20)
-private val InfoColor      = Color(0xFF2B6CB0)
-private val SurfaceColor   = Color(0xFFF7F8FC)
-private val CardColor      = Color(0xFFFFFFFF)
-private val TextPrimary    = Color(0xFF1A202C)
-private val TextSecondary  = Color(0xFF718096)
-private val DividerColor   = Color(0xFFE2E8F0)
-private val AccentBlue     = Color(0xFF3182CE)
+private val CardBackground = Color(0xFF1E2A35)
+private val AccentColor = Color(0xFF4FC3F7)
+
+private val TextPrimary = Color.White
+private val TextSecondary = Color(0xFFB0BEC5)
 
 private fun priorityColor(p: NotificationPriority) = when (p) {
-    NotificationPriority.URGENT  -> UrgentColor
-    NotificationPriority.WARNING -> WarningColor
-    NotificationPriority.INFO    -> InfoColor
+    NotificationPriority.URGENT -> Color(0xFFFF5252)
+    NotificationPriority.WARNING -> Color(0xFFFFB300)
+    NotificationPriority.INFO -> AccentColor
 }
 
-private fun priorityBg(p: NotificationPriority) = when (p) {
-    NotificationPriority.URGENT  -> Color(0xFFFFF5F5)
-    NotificationPriority.WARNING -> Color(0xFFFFFAF0)
-    NotificationPriority.INFO    -> Color(0xFFEBF8FF)
-}
-
-// ── Screen ───────────────────────────────────────────────────────────────────
-
+// ── Main Screen ─────────────────────────────────────────────────────────────
 @RequiresApi(Build.VERSION_CODES.N)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun NotificationsScreen(navController: NavController) {
-
+fun NotificationScreen(navController: NavController) {
     val notifications = remember { mutableStateListOf(*sampleNotifications.toTypedArray()) }
-    val unreadCount   = notifications.count { !it.isRead }
-    var filterTab     by remember { mutableIntStateOf(0) }   // 0 = All, 1 = Unread, 2 = Urgent
+    val unreadCount = notifications.count { !it.isRead }
+    var filterTab by remember { mutableIntStateOf(0) } // 0=All, 1=Unread, 2=Urgent
 
     val displayed = when (filterTab) {
-        1    -> notifications.filter { !it.isRead }
-        2    -> notifications.filter { it.priority == NotificationPriority.URGENT }
+        1 -> notifications.filter { !it.isRead }
+        2 -> notifications.filter { it.priority == NotificationPriority.URGENT }
         else -> notifications
     }
 
-    Scaffold(
-        containerColor = SurfaceColor,
-        topBar = {
-            NotificationsTopBar(
-                unreadCount  = unreadCount,
-                onMarkAllRead = {
-                    notifications.replaceAll { it.copy(isRead = true) }
-                },
-                onNavigateBack = { navController.popBackStack() }
-            )
-        }
-    ) { innerPadding ->
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(brush = GradientBackground),
+        contentAlignment = Alignment.TopCenter
+    ) {
+        Scaffold(
+            containerColor = Color.Transparent,
+            topBar = {
+                NotificationsTopBar(
+                    unreadCount = unreadCount,
+                    onMarkAllRead = { notifications.replaceAll { it.copy(isRead = true) } },
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+        ) { innerPadding ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .padding(horizontal = 16.dp)
+            ) {
+                StatsBanner(notifications)
 
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-        ) {
+                FilterTabs(
+                    selected = filterTab,
+                    unread = notifications.count { !it.isRead },
+                    urgent = notifications.count { it.priority == NotificationPriority.URGENT },
+                    onSelect = { filterTab = it }
+                )
 
-            // ── Stats banner ─────────────────────────────────────────────
-            StatsBanner(notifications = notifications)
+                Spacer(Modifier.height(8.dp))
 
-            Spacer(Modifier.height(4.dp))
+                if (displayed.isEmpty()) {
+                    EmptyState(Modifier.fillMaxSize())
+                } else {
+                    LazyColumn(
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        contentPadding = PaddingValues(vertical = 8.dp)
+                    ) {
+                        itemsIndexed(displayed, key = { _, n -> n.id }) { index, notification ->
+                            var visible by remember { mutableStateOf(false) }
+                            LaunchedEffect(notification.id) { visible = true }
 
-            // ── Filter tabs ───────────────────────────────────────────────
-            FilterTabs(
-                selected  = filterTab,
-                unread    = notifications.count { !it.isRead },
-                urgent    = notifications.count { it.priority == NotificationPriority.URGENT },
-                onSelect  = { filterTab = it }
-            )
-
-            // ── List ──────────────────────────────────────────────────────
-            if (displayed.isEmpty()) {
-                EmptyState(modifier = Modifier.fillMaxSize())
-            } else {
-                LazyColumn(
-                    contentPadding    = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    itemsIndexed(displayed, key = { _, n -> n.id }) { index, notification ->
-                        var visible by remember { mutableStateOf(false) }
-                        LaunchedEffect(notification.id) { visible = true }
-
-                        AnimatedVisibility(
-                            visible = visible,
-                            enter   = fadeIn(tween(300, delayMillis = index * 60)) +
-                                    slideInVertically(tween(300, delayMillis = index * 60)) { it / 4 }
-                        ) {
-                            NotificationCard(
-                                notification = notification,
-                                onDismiss    = { notifications.remove(notification) },
-                                onMarkRead   = {
-                                    val i = notifications.indexOf(notification)
-                                    if (i >= 0) notifications[i] = notification.copy(isRead = true)
-                                }
-                            )
+                            AnimatedVisibility(
+                                visible = visible,
+                                enter = fadeIn(tween(300, delayMillis = index * 50)) +
+                                        slideInVertically(tween(300, delayMillis = index * 50)) { it / 4 }
+                            ) {
+                                NotificationCard(
+                                    notification = notification,
+                                    onDismiss = { notifications.remove(notification) },
+                                    onMarkRead = {
+                                        val i = notifications.indexOf(notification)
+                                        if (i >= 0) notifications[i] = notification.copy(isRead = true)
+                                    }
+                                )
+                            }
                         }
                     }
-
-                    item { Spacer(Modifier.height(16.dp)) }
                 }
             }
         }
     }
 }
 
-// ── Top bar ───────────────────────────────────────────────────────────────────
-
+// ── Top Bar ─────────────────────────────────────────────────────────────────
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun NotificationsTopBar(
@@ -235,7 +166,7 @@ private fun NotificationsTopBar(
 ) {
     TopAppBar(
         colors = TopAppBarDefaults.topAppBarColors(
-            containerColor    = Color.White,
+            containerColor = Color.Transparent,
             titleContentColor = TextPrimary
         ),
         navigationIcon = {
@@ -244,60 +175,36 @@ private fun NotificationsTopBar(
             }
         },
         title = {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text       = "Notifications",
-                    fontWeight = FontWeight.Bold,
-                    fontSize   = 20.sp,
-                    color      = TextPrimary
-                )
-                if (unreadCount > 0) {
-                    Spacer(Modifier.width(8.dp))
-                    Box(
-                        modifier        = Modifier
-                            .clip(CircleShape)
-                            .background(AccentBlue)
-                            .padding(horizontal = 8.dp, vertical = 2.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text      = "$unreadCount",
-                            color     = Color.White,
-                            fontSize  = 11.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                }
-            }
+            Text(
+                text = "Notifications",
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Bold
+            )
         },
         actions = {
             if (unreadCount > 0) {
                 TextButton(onClick = onMarkAllRead) {
-                    Text("Mark all read", color = AccentBlue, fontSize = 13.sp)
+                    Text("Mark all read", color = AccentColor, fontWeight = FontWeight.Medium)
                 }
             }
         }
     )
 }
 
-// ── Stats banner ──────────────────────────────────────────────────────────────
-
+// ── Stats Banner ────────────────────────────────────────────────────────────
 @Composable
 private fun StatsBanner(notifications: List<MaintenanceNotification>) {
-    val urgent  = notifications.count { it.priority == NotificationPriority.URGENT }
+    val urgent = notifications.count { it.priority == NotificationPriority.URGENT }
     val warning = notifications.count { it.priority == NotificationPriority.WARNING }
-    val info    = notifications.count { it.priority == NotificationPriority.INFO }
+    val info = notifications.count { it.priority == NotificationPriority.INFO }
 
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(Color.White)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        horizontalArrangement = Arrangement.spacedBy(10.dp)
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        StatChip(label = "Urgent",  count = urgent,  color = UrgentColor,  modifier = Modifier.weight(1f))
-        StatChip(label = "Warning", count = warning, color = WarningColor, modifier = Modifier.weight(1f))
-        StatChip(label = "Info",    count = info,    color = InfoColor,    modifier = Modifier.weight(1f))
+        StatChip("Urgent", urgent, Color(0xFFFF5252), Modifier.weight(1f))
+        StatChip("Warning", warning, Color(0xFFFFB300), Modifier.weight(1f))
+        StatChip("Info", info, AccentColor, Modifier.weight(1f))
     }
 }
 
@@ -305,205 +212,147 @@ private fun StatsBanner(notifications: List<MaintenanceNotification>) {
 private fun StatChip(label: String, count: Int, color: Color, modifier: Modifier = Modifier) {
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(10.dp))
-            .background(color.copy(alpha = 0.10f))
-            .border(1.dp, color.copy(alpha = 0.25f), RoundedCornerShape(10.dp))
-            .padding(vertical = 8.dp),
+            .clip(RoundedCornerShape(16.dp))
+            .background(CardBackground)
+            .border(1.dp, color.copy(0.3f), RoundedCornerShape(16.dp))
+            .padding(vertical = 12.dp),
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(text = "$count", fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, color = color)
-            Text(text = label,   fontWeight = FontWeight.Medium,    fontSize = 11.sp, color = color.copy(alpha = 0.8f))
+            Text(text = "$count", fontWeight = FontWeight.Bold, fontSize = 22.sp, color = color)
+            Text(text = label, fontSize = 12.sp, color = TextSecondary)
         }
     }
 }
 
-// ── Filter tabs ───────────────────────────────────────────────────────────────
-
+// ── Filter Tabs ─────────────────────────────────────────────────────────────
 @Composable
 private fun FilterTabs(selected: Int, unread: Int, urgent: Int, onSelect: (Int) -> Unit) {
-    val labels = listOf("All", "Unread ($unread)", "Urgent ($urgent)")
+    val tabs = listOf("All", "Unread ($unread)", "Urgent ($urgent)")
 
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(Color.White)
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+        modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        labels.forEachIndexed { i, label ->
+        tabs.forEachIndexed { i, label ->
             val active = selected == i
             Box(
                 modifier = Modifier
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(if (active) AccentBlue else Color(0xFFF0F4F8))
+                    .clip(RoundedCornerShape(50.dp))
+                    .background(if (active) AccentColor else CardBackground)
                     .clickable { onSelect(i) }
-                    .padding(horizontal = 14.dp, vertical = 7.dp),
+                    .padding(horizontal = 20.dp, vertical = 10.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text       = label,
-                    color      = if (active) Color.White else TextSecondary,
-                    fontSize   = 13.sp,
-                    fontWeight = if (active) FontWeight.SemiBold else FontWeight.Normal
+                    text = label,
+                    color = if (active) Color(0xFF0F2027) else TextSecondary,
+                    fontWeight = if (active) FontWeight.SemiBold else FontWeight.Medium
                 )
             }
         }
     }
-
-    Divider(color = DividerColor, thickness = 1.dp)
 }
 
-// ── Notification card ─────────────────────────────────────────────────────────
-
+// ── Notification Card (Login-style) ─────────────────────────────────────────
 @Composable
 private fun NotificationCard(
     notification: MaintenanceNotification,
-    onDismiss:    () -> Unit,
-    onMarkRead:   () -> Unit
+    onDismiss: () -> Unit,
+    onMarkRead: () -> Unit
 ) {
-    val accentColor = priorityColor(notification.priority)
-    val bgColor     = if (notification.isRead) CardColor else priorityBg(notification.priority)
+    val accent = priorityColor(notification.priority)
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape    = RoundedCornerShape(14.dp),
-        colors   = CardDefaults.cardColors(containerColor = bgColor),
-        elevation = CardDefaults.cardElevation(defaultElevation = if (notification.isRead) 1.dp else 3.dp)
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = CardBackground),
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
     ) {
-        Row(modifier = Modifier.fillMaxWidth()) {
-
-            // Priority stripe
+        Row {
             Box(
                 modifier = Modifier
-                    .width(4.dp)
+                    .width(6.dp)
                     .fillMaxHeight()
-                    .background(
-                        Brush.verticalGradient(
-                            listOf(accentColor, accentColor.copy(alpha = 0.5f))
-                        ),
-                        RoundedCornerShape(topStart = 14.dp, bottomStart = 14.dp)
-                    )
+                    .background(accent, RoundedCornerShape(topStart = 24.dp, bottomStart = 24.dp))
             )
 
-            Column(modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp)
-            ) {
-
-                // Header row
-                Row(
-                    modifier       = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // Icon circle
+            Column(modifier = Modifier.padding(20.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(
-                        modifier        = Modifier
-                            .size(38.dp)
+                        modifier = Modifier
+                            .size(48.dp)
                             .clip(CircleShape)
-                            .background(accentColor.copy(alpha = 0.12f)),
+                            .background(accent.copy(0.15f)),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(
-                            imageVector        = notification.icon,
-                            contentDescription = null,
-                            tint               = accentColor,
-                            modifier           = Modifier.size(20.dp)
-                        )
+                        Icon(notification.icon, null, tint = accent, modifier = Modifier.size(26.dp))
                     }
 
-                    Spacer(Modifier.width(10.dp))
+                    Spacer(Modifier.width(14.dp))
 
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text       = notification.title,
+                            text = notification.title,
                             fontWeight = FontWeight.SemiBold,
-                            fontSize   = 14.sp,
-                            color      = TextPrimary,
-                            maxLines   = 1,
-                            overflow   = TextOverflow.Ellipsis
+                            fontSize = 16.5.sp,
+                            color = TextPrimary
                         )
                         Text(
-                            text     = notification.vehicle,
-                            fontSize = 11.sp,
-                            color    = accentColor,
-                            fontWeight = FontWeight.Medium
+                            text = notification.vehicle,
+                            fontSize = 13.5.sp,
+                            color = accent
                         )
                     }
 
-                    // Unread dot + time
-                    Column(horizontalAlignment = Alignment.End) {
-                        if (!notification.isRead) {
-                            Box(
-                                modifier = Modifier
-                                    .size(8.dp)
-                                    .clip(CircleShape)
-                                    .background(accentColor)
-                            )
-                            Spacer(Modifier.height(4.dp))
-                        }
-                        Text(
-                            text     = notification.timeAgo,
-                            fontSize = 10.sp,
-                            color    = TextSecondary
+                    if (!notification.isRead) {
+                        Box(
+                            modifier = Modifier
+                                .size(10.dp)
+                                .clip(CircleShape)
+                                .background(accent)
                         )
                     }
                 }
 
-                Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.height(12.dp))
 
-                // Message body
                 Text(
-                    text     = notification.message,
-                    fontSize = 12.sp,
-                    color    = TextSecondary,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    lineHeight = 17.sp
+                    text = notification.message,
+                    fontSize = 14.sp,
+                    color = TextSecondary,
+                    lineHeight = 20.sp
                 )
 
-                // Action row
                 if (!notification.isRead || notification.actionLabel != null) {
-                    Spacer(Modifier.height(10.dp))
+                    Spacer(Modifier.height(16.dp))
+
                     Row(
-                        modifier       = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.End,
-                        verticalAlignment     = Alignment.CenterVertically
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
                         if (!notification.isRead) {
-                            TextButton(
-                                onClick       = onMarkRead,
-                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
-                            ) {
-                                Text("Mark read", color = TextSecondary, fontSize = 12.sp)
+                            TextButton(onClick = onMarkRead) {
+                                Text("Mark as read", color = TextSecondary)
                             }
                         }
 
                         if (notification.actionLabel != null) {
-                            Spacer(Modifier.width(4.dp))
                             Button(
-                                onClick       = { /* navigate to detail */ },
-                                shape         = RoundedCornerShape(8.dp),
-                                colors        = ButtonDefaults.buttonColors(containerColor = accentColor),
-                                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
-                                modifier      = Modifier.height(32.dp)
+                                onClick = { },
+                                colors = ButtonDefaults.buttonColors(containerColor = AccentColor),
+                                shape = RoundedCornerShape(14.dp),
+                                modifier = Modifier.height(46.dp)
                             ) {
-                                Text(notification.actionLabel, fontSize = 12.sp, color = Color.White)
+                                Text(notification.actionLabel, color = Color(0xFF0F2027), fontWeight = FontWeight.Bold)
                             }
                         }
 
-                        Spacer(Modifier.width(4.dp))
+                        Spacer(Modifier.weight(1f))
 
-                        IconButton(
-                            onClick  = onDismiss,
-                            modifier = Modifier.size(28.dp)
-                        ) {
-                            Icon(
-                                Icons.Filled.Close,
-                                contentDescription = "Dismiss",
-                                tint               = TextSecondary,
-                                modifier           = Modifier.size(16.dp)
-                            )
+                        IconButton(onClick = onDismiss) {
+                            Icon(Icons.Filled.Close, contentDescription = "Dismiss", tint = TextSecondary)
                         }
                     }
                 }
@@ -512,38 +361,35 @@ private fun NotificationCard(
     }
 }
 
-// ── Empty state ───────────────────────────────────────────────────────────────
-
+// ── Empty State ─────────────────────────────────────────────────────────────
 @Composable
 private fun EmptyState(modifier: Modifier = Modifier) {
     Column(
-        modifier            = modifier,
+        modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
         Icon(
-            imageVector        = Icons.Outlined.NotificationsNone,
+            Icons.Outlined.NotificationsNone,
             contentDescription = null,
-            modifier           = Modifier.size(72.dp),
-            tint               = TextSecondary.copy(alpha = 0.4f)
+            modifier = Modifier.size(90.dp),
+            tint = TextSecondary.copy(0.4f)
         )
-        Spacer(Modifier.height(16.dp))
-        Text("All caught up!", fontWeight = FontWeight.SemiBold, fontSize = 18.sp, color = TextPrimary)
-        Spacer(Modifier.height(6.dp))
+        Spacer(Modifier.height(24.dp))
+        Text("All caught up!", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+        Spacer(Modifier.height(8.dp))
         Text(
-            text      = "No notifications at the moment.\nWe'll alert you when maintenance is due.",
-            fontSize  = 13.sp,
-            color     = TextSecondary,
-            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-            lineHeight = 18.sp
+            "No notifications at the moment.\nWe'll alert you when maintenance is due.",
+            color = TextSecondary,
+            textAlign = TextAlign.Center,
+            lineHeight = 20.sp
         )
     }
 }
 
-// ── Preview ───────────────────────────────────────────────────────────────────
-
+@RequiresApi(Build.VERSION_CODES.N)
 @Preview(showBackground = true)
 @Composable
-fun NotificationsScreenPreview() {
-    NotificationsScreen(rememberNavController())
+fun NotificationScreenPreview() {
+    NotificationScreen(rememberNavController())
 }

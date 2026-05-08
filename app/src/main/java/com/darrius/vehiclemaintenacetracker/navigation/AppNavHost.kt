@@ -9,7 +9,7 @@ import androidx.navigation.compose.rememberNavController
 import com.darrius.vehiclemaintenacetracker.ui.screens.AddService.AddServiceScreen
 import com.darrius.vehiclemaintenacetracker.ui.screens.Home.HomeScreen
 import com.darrius.vehiclemaintenacetracker.ui.screens.MechanicFinder.MechanicFinderScreen
-import com.darrius.vehiclemaintenacetracker.ui.screens.Notifications.NotificationsScreen
+import com.darrius.vehiclemaintenacetracker.ui.screens.Notifications.NotificationScreen
 import com.darrius.vehiclemaintenacetracker.ui.screens.Onboarding.OnboardingScreen
 import com.darrius.vehiclemaintenacetracker.ui.screens.ServiceHistoryLog.ServiceHistoryLogScreen
 import com.darrius.vehiclemaintenacetracker.ui.screens.ServiceReminder.ServiceReminderScreen
@@ -73,19 +73,17 @@ fun AppNavHost(
             VehicleProfileScreen(navController = navController)
         }
 
-
-
         composable(ROUT_SETTINGS) {
             SettingsScreen(navController = navController)
         }
         composable(ROUT_EDITVEHICLEPROFILE) {
         EditVehicleScreen(navController = navController)
-    }
-    composable(ROUT_ADDMAINTENANCE) {
+        }
+         composable(ROUT_ADDMAINTENANCE) {
         AddMaintenanceScreen(navController = navController)
-    }
-    composable(ROUT_ADDSERVICE) {
+         }
+          composable(ROUT_ADDSERVICE) {
         AddServiceScreen(navController = navController) {}
-    }
+          }
     }
 }
