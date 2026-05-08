@@ -45,8 +45,6 @@ fun HomeScreen(navController: NavController) {
         DrawerMenuItem(Icons.Default.Build, "Service Reminder", ROUT_SERVICEREMINDER),
         DrawerMenuItem(Icons.Default.List, "Service History Log", ROUT_SERVICEHISTORYLOG),
         DrawerMenuItem(Icons.Default.CarRepair, "Mechanic Finder", ROUT_MECHANICFINDER),
-        DrawerMenuItem(Icons.Default.Notifications, "Notifications", ROUT_NOTIFICATIONS),
-        DrawerMenuItem(Icons.Default.Settings, "Settings", ROUT_SETTINGS),
     )
 
     val gradientBackground = Brush.verticalGradient(
@@ -167,7 +165,7 @@ fun HomeScreen(navController: NavController) {
                         )
                     },
                     actions = {
-                        IconButton(onClick = { navController.navigate(ROUT_NOTIFICATIONS) }) {
+                        IconButton(onClick = { }) {
                             Icon(Icons.Default.Notifications, contentDescription = "Notifications", tint = Color.White)
                         }
                         IconButton(onClick = { navController.navigate(ROUT_SETTINGS) }) {
